@@ -1,24 +1,45 @@
 ---
-import type { HTMLAttributes } from 'astro/types';
+import type { HTMLAttributes } from "astro/types";
 
-type Props = HTMLAttributes<'a'>;
+type Props = HTMLAttributes<"a">;
 
 const { href, class: className, ...props } = Astro.props;
-const pathname = Astro.url.pathname.replace(import.meta.env.BASE_URL, '');
-const subpath = pathname.match(/[^\/]+/g);
-const isActive = href === pathname || href === '/' + (subpath?.[0] || '');
+
+// Handle undefined href
+if (!href) {
+  throw new Error("HeaderLink component requires an href prop");
+}
+
+const baseURL = import.meta.env.BASE_URL || "/";
+const pathname = Astro.url.pathname;
+
+// Convert href to string and normalize it
+const hrefString = typeof href === "string" ? href : href.toString();
+const normalizedHref = hrefString.startsWith("/")
+  ? hrefString
+  : `/${hrefString}`;
+const fullHref =
+  baseURL === "/"
+    ? normalizedHref
+    : `${baseURL.replace(/\/$/, "")}${normalizedHref}`;
+
+// Check if current path matches the link (accounting for base URL)
+const currentPath = pathname.replace(baseURL.replace(/\/$/, ""), "") || "/";
+const linkPath = normalizedHref;
+const isActive =
+  linkPath === currentPath || (linkPath === "/" && currentPath === "/");
 ---
 
-<a href={href} class:list={[className, { active: isActive }]} {...props}>
-	<slot />
+<a href={fullHref} class:list={[className, { active: isActive }]} {...props}>
+  <slot />
 </a>
 <style>
-	a {
-		display: inline-block;
-		text-decoration: none;
-	}
-	a.active {
-		font-weight: bolder;
-		text-decoration: underline;
-	}
+  a {
+    display: inline-block;
+    text-decoration: none;
+  }
+  a.active {
+    font-weight: bolder;
+    text-decoration: underline;
+  }
 </style>
